@@ -52,7 +52,7 @@ userSchema.pre("save",async function (next){
     if(!this.isModified("password")){
         return next()
     }
-    this.password = bcrypt.hash(this.password,10) //salt or hashrounds
+    this.password = await bcrypt.hash(this.password,10) //salt or hashrounds
     next()
     //problem jab bhi userschema use hoga ye har baar pssword save krta jaega chahe if avatar save hua ho 
     //we only need when there is change in password
