@@ -1,7 +1,7 @@
 import mongoose from "mongoose"
 import jwt from "jsonwebtoken"
 import bcrypt from "bcrypt"
-const userSchema=new Schema(
+const userSchema=new mongoose.Schema(
     {
         username:{
             type:String,
@@ -48,12 +48,11 @@ const userSchema=new Schema(
     timestamps:true
 })
 // userSchema.pre("save",()=>{})  // we cannot write like this bcoz arrow function mein this ka use nhi hota , use context nhi pta hota
-userSchema.pre("save",async function (next){
+userSchema.pre("save",async function (){
     if(!this.isModified("password")){
-        return next()
+        return ;
     }
     this.password = await bcrypt.hash(this.password,10) //salt or hashrounds
-    next()
     //problem jab bhi userschema use hoga ye har baar pssword save krta jaega chahe if avatar save hua ho 
     //we only need when there is change in password
 })

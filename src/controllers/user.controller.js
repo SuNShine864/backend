@@ -3,6 +3,7 @@ import {ApiError} from "../utils/ApiError.js"
 import {User} from "../models/user.models.js"
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
+import {upload} from "../middlewares/multer.middleware.js"
 const registerUser=asyncHandler(async(req,res)=>{
     //get user input value from frontend
     //validation:- email should not be empty 
@@ -14,9 +15,7 @@ const registerUser=asyncHandler(async(req,res)=>{
     //remove password and refresh token field fro, response
     //check for user creation
     //return response
-
     const {fullName,email,username,password}=req.body //data from body, form se data (req.body ka access hame express de deta hai)
-    console.log("email:",email);
 
     // if(fullName===""){
     //     throw new ApiError(400,"fullname is required")
@@ -30,7 +29,7 @@ const registerUser=asyncHandler(async(req,res)=>{
 
     //check user already exists
     //the user defined in schema can call mongodb user any no of times
-    const existedUser=User.findOne({
+    const existedUser=await User.findOne({
         $or: [{username},{email}]
     })
     if(existedUser){
@@ -38,9 +37,9 @@ const registerUser=asyncHandler(async(req,res)=>{
     }
 
     //check for avatar images
-    const avatarLocalPath=req.files?.avatar[0]?.path //files ka access hame multer de deta hai
+    const avatarLocalPath=req.files?.avatar?.[0]?.path; //files ka access hame multer de deta hai
     //agar multer ne files store ki hogi , toh usme agr avatar ka field 0 hoga?(bcoz hamne ek hi file li h) toh uska path de do
-    const coverImageLocalPath=req.files?.coverImage[0]?.path;
+    const coverImageLocalPath=req.files?.coverImage?.[0]?.path;
     if(!avatarLocalPath){
         throw new ApiError(400,"Avatar file is required")
     }
@@ -48,6 +47,7 @@ const registerUser=asyncHandler(async(req,res)=>{
     const avatar=await uploadOnCloudinary(avatarLocalPath)
     //bcoz file ke size ke hisab se kitna bhi time lag skta h upload krne mein
     const coverImage=await uploadOnCloudinary(coverImageLocalPath)
+
 
     if(!avatar){
         throw new ApiError(400,"Avatar file is required")
