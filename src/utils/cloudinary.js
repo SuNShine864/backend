@@ -6,9 +6,7 @@ cloudinary.config({
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
-console.log("CLOUD NAME:", process.env.CLOUDINARY_CLOUD_NAME);
-console.log("API KEY:", process.env.CLOUDINARY_API_KEY);
-console.log("API SECRET:", process.env.CLOUDINARY_API_SECRET);
+
 const uploadOnCloudinary = async(localFilePath)=>{
     try{
         if(!localFilePath) return null
@@ -18,6 +16,7 @@ const uploadOnCloudinary = async(localFilePath)=>{
         })
         //file has been uploaded successfully
         console.log("File is uploaded on cloudinary",response.url);
+        fs.unlinkSync(localFilePath) //after uploading ulink files from local storage
         return response;
     }catch(error){
             console.log("❌ Cloudinary ERROR:", error); 
