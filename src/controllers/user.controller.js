@@ -4,6 +4,20 @@ import {User} from "../models/user.models.js"
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {upload} from "../middlewares/multer.middleware.js"
+
+const generateAccessAndRefreshTokens = async(userId)=>{
+    try{
+        const user=await User.findById(userId);
+        const accessToken=user.generateAccessToken()
+        const refreshToken=user.generateRefreshToken()
+        user.refreshToken=refreshToken
+        await user.save({validateBeforeSave:false}) 
+        return {accessToken,refreshToken}
+    }catch{
+        throw new ApiError(500,"Something went wrong while generating refresh and access token")
+    }
+}
+
 const registerUser=asyncHandler(async(req,res)=>{
     //get user input value from frontend
     //validation:- email should not be empty 
@@ -78,4 +92,86 @@ const registerUser=asyncHandler(async(req,res)=>{
     )
 })
 
-export {registerUser}
+const loginUser=asyncHandler(async(req,res)=>{
+    //accept fields which you required to login
+    //then check if user is registered or not
+    //if not find give error
+    //password check
+    //refresh and access token
+    //give token in cokkies
+
+    const {username,email,password}=req.body;
+    if(!username && !email){
+        throw new ApiError(400,"username or email is required")
+    }
+    //find userin our database
+    const user= await User.findOne({
+        $or:[{username},{email}]
+    })
+
+    //if user not find
+    if(!user){
+        throw new ApiError(404,"User does not exist")
+    }
+
+    //find password ye hmara method hai toh ham isse user mein use kr paenge , User mongodb ke methods rakhta hai
+    const isPasswordValid = await user.isPasswordCorrect(password)
+    
+    //if password not correct
+    if(!isPasswordValid){
+        throw new ApiError(401,"Invalid user credentials")
+    }
+
+    //access and refresh token
+    const {accessToken,refreshToken}=await generateAccessAndRefreshTokens(user._id)
+    
+    //here user do not want to share password and refreshToken
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
+
+    const options={
+        httpOnly:true,
+        secure:true
+    }     //these cookies can be modified by server only
+
+    return res.status(200)
+    .cookie("accessToken",accessToken,options)
+    .cookie("refreshToken",refreshToken,options)
+    .json(
+        new ApiResponse(
+            200,
+            {
+                user:loggedInUser,accessToken,refreshToken
+            },
+            "User logged In Successfully"
+        )
+    )
+
+    const logoutUser=asyncHandler(async(req,res)=>{
+        //remove cookies
+        //change refreshtoken in user
+        User.findByIdAndUpdate(
+            req.user._id,
+            {
+                $set: {
+                    refreshToken:undefined
+                }
+            },
+            {
+                new:true
+            }
+        )
+        const options={
+            httpOnly:true,
+            ecure:true
+        } 
+        return res
+        .status(200)
+        .clearCookie("accessToken",options)
+        .clearCookie("refreshToken",options)
+        .json(new ApiResponse(200,{},"User Logged Out"))
+    })
+})
+export {registerUser,
+    loginUser,
+    logoutUser
+}
